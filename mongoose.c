@@ -1154,7 +1154,7 @@ void cs_md5_update(cs_md5_ctx *ctx, const unsigned char *buf, size_t len) {
   memcpy(ctx->in, buf, len);
 }
 
-void cs_md5_final(unsigned char digest[16], cs_md5_ctx *ctx) {
+void cs_md5_final(unsigned char *md, cs_md5_ctx *ctx) {
   unsigned count;
   unsigned char *p;
   uint32_t *a;
@@ -1180,7 +1180,7 @@ void cs_md5_final(unsigned char digest[16], cs_md5_ctx *ctx) {
 
   cs_md5_transform(ctx->buf, (uint32_t *) ctx->in);
   byteReverse((unsigned char *) ctx->buf, 4);
-  memcpy(digest, ctx->buf, 16);
+  memcpy(md, ctx->buf, 16);
   memset((char *) ctx, 0, sizeof(*ctx));
 }
 
@@ -2375,7 +2375,9 @@ MG_INTERNAL void mg_call(struct mg_connection *nc,
     /* It's important to not double-count recved bytes, and since mg_call can be
      * called recursively (e.g. proto_handler invokes user handler), we keep
      * track of recursion and only report received bytes at the top level. */
-    if (nesting_level == 1 && recved > 0 && !(nc->flags & MG_F_UDP)) {
+    if (nesting_level == 1 && recved > 0 && !(nc->flags & MG_F_UDP) &&
+        nc->iface != NULL && nc->iface->vtable != NULL &&
+        nc->iface->vtable->recved != NULL) {
       nc->iface->vtable->recved(nc, recved);
     }
   }
